@@ -1,0 +1,13 @@
+I will use the following scale to deduct points on response type questions when necessary:
+
+Missing some work/explanation: -15%
+
+Missing a lot of work/explanation: -30%
+
+No work/explanation: -50%
+
+Wrong answer with slight mistakes: -15%
+
+Wrong answer with recoverable mistakes: -30%
+
+Wrong answer: -50%

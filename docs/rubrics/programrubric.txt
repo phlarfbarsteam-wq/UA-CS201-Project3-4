@@ -1,0 +1,30 @@
+The languages you can choose from are: C, C++, Java, Rust
+
+For each program, I will use the following to determine your grade. Documentation (diagrams) will be considered a response question when it is required.
+
+Since someone could receive a high grade without doing much work, if anyone has not made a fair attempt at a program, they will receive a 0% on the program.
+
+Comments (30%):
+
+    5%: Comment block in the driver program describing the project and includes any sources referenced (links are ok). Also, your name, instructor name, and TA name are required in this comment block.
+    5%: Comment block above a function declaration used to describe what the function does, and what the input/output of the function is.
+    20%: In-line comments throughout the programs. Someone reading the programs should easily be able to follow along.
+
+Modularity (10%): Functions/structs/classes should not be located in the same file as the driver.
+
+    C: make use of c/h files correctly.
+    C++: make use of cpp/h files correctly.
+    Java: make use of packages correctly.
+    Rust: make use of modules correctly.
+
+Compilation (30%):
+
+    20%: Your program compiles.
+    10%: You have a make file that works as intended.
+
+Execution (30%):
+
+    20%: Your program works as intended.
+    10%: Your program does not crash.
+
+A note on make files: they must include a "all, clean, and run" target that function as intended, this will be how I compile/execute your programs.

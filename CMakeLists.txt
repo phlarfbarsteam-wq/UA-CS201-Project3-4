@@ -3,6 +3,7 @@ project(HospitalSim CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(SFML 3 COMPONENTS Graphics REQUIRED)
 
@@ -14,5 +15,5 @@ add_executable(hospital
     src/Patient.cpp)
 
 # data/ and assets/ are read from the source tree, so run from anywhere.
-target_compile_definitions(hospital PRIVATE DATA_DIR="${CMAKE_SOURCE_DIR}")
+target_compile_definitions(hospital PRIVATE DATA_DIR=\"${CMAKE_SOURCE_DIR}\")
 target_link_libraries(hospital PRIVATE SFML::Graphics)

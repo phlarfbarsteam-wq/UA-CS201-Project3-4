@@ -1,8 +1,12 @@
 #include "App.hpp"
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <optional>
 #include <string>
+
+const sf::Color BG_COLOR(25, 28, 36); // Define background color (dark grey)
+const sf::Color BUTTON_COLOR(60, 110, 200); // Define button color (blue)
+const sf::FloatRect NEXT_BUTTON({20.f, 20.f}, {140.f, 40.f}); // Define Next button position/size
 
 App::App() : window(sf::VideoMode({1000, 640}), "Nota Hospital Simulation") {
     window.setFramerateLimit(60);
@@ -12,16 +16,35 @@ App::App() : window(sf::VideoMode({1000, 640}), "Nota Hospital Simulation") {
 void App::run() {
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
-            if (event->is<sf::Event::Closed>()) window.close();
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            } else if (const auto* m = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (m->button == sf::Mouse::Button::Left && NEXT_BUTTON.contains(sf::Vector2f(m->position))) {
+                    sim.nextTick();
+                }
+            }
         }
         draw();
     }
 }
 
 void App::draw() {
-    window.clear(sf::Color(25, 28, 36)); // Dark grey
-    sf::Text text(font, "Tick " + std::to_string(sim.getTick()), 16); // Fetch current tick
-    text.setPosition({20.f, 20.f}); // Place text at the top-left corner
-    window.draw(text); // Draw text
+    window.clear(BG_COLOR); // Dark grey
+
+    sf::RectangleShape button(NEXT_BUTTON.size); // Set Next button shape
+    button.setPosition(NEXT_BUTTON.position); // Set Next button position
+    button.setFillColor(BUTTON_COLOR); // Set Next button color (blue)
+    window.draw(button); // Draw Next button
+    
+    sf::Text tickLabel (font, "Next Tick", 18); // Set Next button text
+    sf::FloatRect b = tickLabel.getLocalBounds(); // Get bounds of text
+    tickLabel.setOrigin({b.position.x + b.size.x / 2.f, b.position.y + b.size.y / 2.f}); // Set origin to center of button
+    tickLabel.setPosition({NEXT_BUTTON.position.x + NEXT_BUTTON.size.x / 2.f, NEXT_BUTTON.position.y + NEXT_BUTTON.size.y / 2.f}); // Center text on button
+    window.draw(tickLabel); // Draw Next button text
+
+    sf::Text tickText(font, "Tick " + std::to_string(sim.getTick()), 16); // Fetch current tick
+    tickText.setPosition({180.f, 30.f}); // Place text at the top-left corner
+    window.draw(tickText); // Draw text
+
     window.display(); // Display window
 }

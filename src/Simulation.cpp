@@ -14,7 +14,7 @@ void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
 }
 
 void Simulation::nextTick() {
-    //implementation
+    ++tick; // advance tick count
 }
 
 std::shared_ptr<Patient> Simulation::findPatient(std::string dob) {
@@ -34,5 +34,5 @@ std::vector<std::shared_ptr<Doctor>> Simulation::getDoctors() {
 }
 
 int Simulation::getTick() const {
-    return 0; // placeholder
+    return tick;
 }

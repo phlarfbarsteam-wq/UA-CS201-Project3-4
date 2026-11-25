@@ -34,5 +34,5 @@ std::vector<std::shared_ptr<Doctor>> Simulation::getDoctors() {
 }
 
 int Simulation::getTick() const {
-    //implementation
+    return 0; // placeholder
 }

@@ -1,5 +1,8 @@
 #include "App.hpp"
 
 int main() {
-    //implementation
+    App app;
+    app.run();
+
+    return 0;
 }

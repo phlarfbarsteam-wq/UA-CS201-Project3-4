@@ -45,6 +45,10 @@ void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
 }
 
 void Simulation::nextTick() {
+    for (const auto& d : doctorList) {
+        if (d->isTreatmentDone(tick)) d->finish()->heal(); // treatment done: patient is healed
+    }
+
     bool changed = false;
     for (const auto& p : waiting) changed |= p->escalate(); // true if condition changed
     
@@ -57,6 +61,15 @@ void Simulation::nextTick() {
 
     if (changed) std::make_heap(waiting.begin(), waiting.end(), PatientOrder()); // rebuild only if changed
 
+    for (const auto& d : doctorList) {
+        if (waiting.empty()) break;
+        if (d->isFree(tick)) {
+            std::pop_heap(waiting.begin(), waiting.end(), PatientOrder()); // top moves to back
+            d->treat(waiting.back(), tick);
+            waiting.pop_back();
+        }
+    }
+
     ++tick;
 }
 
@@ -66,7 +79,8 @@ std::shared_ptr<Patient> Simulation::findPatient(std::string dob) {
 }
 
 std::shared_ptr<Doctor> Simulation::findDoctor(std::string dob) {
-    //implementation
+    auto* d = doctors.search(dob); // pointer to stored shared_ptr (of doctor)
+    return d ? *d : nullptr; // return shared_ptr if found, else nullptr
 }
 
 std::vector<std::shared_ptr<Patient>> Simulation::getWaiting() {
@@ -77,7 +91,7 @@ std::vector<std::shared_ptr<Patient>> Simulation::getWaiting() {
 }
 
 std::vector<std::shared_ptr<Doctor>> Simulation::getDoctors() {
-    //implementation
+    return doctorList;
 }
 
 int Simulation::getTick() const {

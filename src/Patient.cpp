@@ -1,27 +1,33 @@
 #include "Patient.hpp"
 
-Patient::Patient(std::string name, int age, std::string dob, int condition,
-                 int arrivalTick, int deadline) {
-    //implementation
-}
+#include <algorithm>
+#include <utility>
+
+Patient::Patient(std::string name, int age, std::string dob, int condition, int arrivalTick, int deadline) :
+    name(std::move(name)), // Store name
+    age(age), // Store age
+    dob(std::move(dob)), // Store DOB
+    condition(std::clamp(condition, 0, 10)), // store condition
+    arrivalTick(arrivalTick), // Store arrival tick
+    deadline(deadline) {} // Store deadline
 
 std::string Patient::getName() const {
-    //implementation
+    return name;
 }
 int Patient::getAge() const {
-    //implementation
+    return age;
 }
 std::string Patient::getDob() const {
-    //implementation
+    return dob;
 }
 int Patient::getCondition() const {
-    //implementation
+    return condition;
 }
 int Patient::getArrivalTick() const {
-    //implementation
+    return arrivalTick;
 }
 int Patient::getDeadline() const {
-    //implementation
+    return deadline;
 }
 
 void Patient::escalate() {

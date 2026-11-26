@@ -19,6 +19,7 @@ constexpr sf::Vector2f TICK_TEXT_POS(NEXT_BUTTON.position.x + NEXT_BUTTON.size.x
 App::App() : window(sf::VideoMode({1000, 640}), "Nota Hospital Simulation") {
     window.setFramerateLimit(60);
     font.openFromFile(DATA_DIR "/assets/JetBrainsMonoNerdFontMono-Regular.ttf");
+    sim.loadData(DATA_DIR "/data/patients.csv", "");
 }
 
 void App::run() {
@@ -53,6 +54,14 @@ void App::draw() {
     sf::Text tickText(font, "Tick " + std::to_string(sim.getTick()), 16); // Fetch current tick
     tickText.setPosition(TICK_TEXT_POS); // Place text next to the button
     window.draw(tickText); // Draw text
+
+    auto waiting = sim.getWaiting();
+    for (std::size_t i = 0; i < waiting.size(); ++i) {
+        const auto& p = waiting[i];
+        sf::Text row(font, p->getName() + " " + std::to_string(p->getCondition()), 14);
+        row.setPosition({20.f, 80.f + 22.f * i});
+        window.draw(row);
+    }
 
     window.display(); // Display window
 }

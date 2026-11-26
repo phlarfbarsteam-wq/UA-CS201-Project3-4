@@ -16,10 +16,10 @@ Simulation::Simulation() : tick(0), patients(3), doctors(3) {
 }
 
 void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
-    std::ifstream in(patientCsv);
+    std::ifstream p_in(patientCsv);
     std::string line;
-    std::getline(in, line); // skip header
-    while (std::getline(in, line)) {
+    std::getline(p_in, line); // skip header
+    while (std::getline(p_in, line)) {
         std::stringstream ss(line);
         std::vector<std::string> f;
         std::string field;
@@ -29,6 +29,19 @@ void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
     }
 
     for (const auto& p : pending) patients.insert(p->getDob(), p); // add to patients map
+    
+    std::ifstream d_in(doctorCsv);
+    std::getline(d_in, line); // skip header
+    while (std::getline(d_in, line)) {
+        std::stringstream ss(line);
+        std::vector<std::string> f;
+        std::string field;
+        while (std::getline(ss, field, ',')) f.push_back(field);
+        doctorList.push_back(std::make_shared<Doctor>(
+            f[0], std::stoi(f[1]), f[2], std::stoi(f[3]), std::stoi(f[4]), std::stoi(f[5])));
+    }
+
+    for (const auto& d : doctorList) doctors.insert(d->getDob(), d); // add to doctors map
 }
 
 void Simulation::nextTick() {

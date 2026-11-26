@@ -80,16 +80,8 @@ private:
      * Input:  parent (must NOT be full) and i, the index of a FULL child.
      * Output: none; the tree is modified in place.
      *
-     * Example with t = 3 (a full node holds 2t-1 = 5 keys):
-     *
-     *   before:  parent: [ ... ]            after:  parent: [ ... M ... ]
-     *                      |                                  /     \
-     *              child: [a b M d e]            child: [a b]       sibling: [d e]
-     *
-     * The median (index t-1) moves up. The lower half stays in `child`, the
-     * upper half moves to a new `sibling`, and for internal nodes the child
-     * pointers are divided the same way.
      */
+    
     void splitChild(Node* parent, std::size_t i) {
         Node* child = parent->children[i].get();
         auto sibling = std::make_unique<Node>(child->leaf);

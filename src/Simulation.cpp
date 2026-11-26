@@ -42,7 +42,7 @@ void Simulation::nextTick() {
         }
     }
 
-    if (changed) std::sort(waiting.begin(), waiting.end(), PatientOrder()); // sort only if changed
+    if (changed) std::make_heap(waiting.begin(), waiting.end(), PatientOrder()); // rebuild only if changed
 
     ++tick;
 }

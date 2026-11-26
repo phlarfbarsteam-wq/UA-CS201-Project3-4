@@ -20,6 +20,6 @@ public:
     int getArrivalTick() const;
     int getDeadline() const;
 
-    void escalate();
+    bool escalate();
     void heal();
 };

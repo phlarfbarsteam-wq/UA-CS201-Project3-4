@@ -30,10 +30,16 @@ int Patient::getDeadline() const {
     return deadline;
 }
 
-void Patient::escalate() {
-    //implementation
+bool Patient::escalate() {
+    if (condition >= 10) return false;
+    if (--deadline <= 0) {
+        deadline = 0;
+        condition = 10;
+        return true;
+    }
+    return false;
 }
 
 void Patient::heal() {
-    //implementation
+    condition = 0;
 }

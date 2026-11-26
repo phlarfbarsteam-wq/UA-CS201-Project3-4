@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <queue>
 #include <string>
 #include <vector>
 
@@ -19,10 +18,7 @@ class Simulation {
     BTree<std::shared_ptr<Doctor>> doctors;
     std::vector<std::shared_ptr<Doctor>> doctorList;
     std::vector<std::shared_ptr<Patient>> pending;
-    std::priority_queue<std::shared_ptr<Patient>,
-                        std::vector<std::shared_ptr<Patient>>, PatientOrder>
-        waiting;
-
+    std::vector<std::shared_ptr<Patient>> waiting;
 public:
     Simulation();
 

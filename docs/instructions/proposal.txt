@@ -1,0 +1,21 @@
+/*
+# Project 4 Proposal: Hospital Simulation Part 2
+# 1. B-Tree 'delete'
+# Implement 'delete' in our B-Tree (key removal with borrow and merge).
+# Why: Patients who finish treatment and doctors who leave the hospital must be removed
+#      from the tree. Without deletion, the tree grows forever and lookups return patients
+#      who are no longer there.
+#
+# 2. Name Index ('std::unordered_map')
+# Add 'std::unordered_map<std::string, std::vector<Patient*>>' mapping a patients's name to all
+# matching patients. It is updated on every insert and delete, and used by a new name search
+# in the lookup box. 
+# Why: The B-Tree is keyed by DOB, so finding a patient by name would mean scanning every record.
+#      The hash map gives average O(1) lookup and returns every patient who shares a name. 
+#
+# 3. B-Tree Viewer
+# Add an SFML view that draws the B-Tree: one row per level, one box per node showing its keys,
+# with lines to child nodes. It redraws after every insert and delete. 
+# Why: It shows how the tree changes as patients arrive and leave, including node splits and merges.
+       It makes the B-Tree work (insert and delete) visible during a demo.
+*/

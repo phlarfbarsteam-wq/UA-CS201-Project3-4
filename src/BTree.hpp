@@ -171,6 +171,154 @@ private:
                              std::move(value));
     }
 
+    void removeFromLeaf(Node* node, std::size_t index) {
+        node->keys.erase(node->keys.begin() + offset(index));
+        node->values.erase(node->values.begin() + offset(index));
+    }
+
+    void borrowFromPrevious(Node* parent, std::size_t index) {
+        Node* child = parent->children[index].get();
+        Node* sibling = parent->children[index - 1].get();
+
+        // Rotate the separator down and the left sibling's largest key up.
+        child->keys.insert(child->keys.begin(),
+                           std::move(parent->keys[index - 1]));
+        child->values.insert(child->values.begin(),
+                             std::move(parent->values[index - 1]));
+        if (!child->leaf) {
+            child->children.insert(child->children.begin(),
+                                    std::move(sibling->children.back()));
+            sibling->children.pop_back();
+        }
+
+        parent->keys[index - 1] = std::move(sibling->keys.back());
+        parent->values[index - 1] = std::move(sibling->values.back());
+        sibling->keys.pop_back();
+        sibling->values.pop_back();
+    }
+
+    void borrowFromNext(Node* parent, std::size_t index) {
+        Node* child = parent->children[index].get();
+        Node* sibling = parent->children[index + 1].get();
+
+        // Rotate the separator down and the right sibling's smallest key up.
+        child->keys.push_back(std::move(parent->keys[index]));
+        child->values.push_back(std::move(parent->values[index]));
+        if (!child->leaf) {
+            child->children.push_back(std::move(sibling->children.front()));
+            sibling->children.erase(sibling->children.begin());
+        }
+
+        parent->keys[index] = std::move(sibling->keys.front());
+        parent->values[index] = std::move(sibling->values.front());
+        sibling->keys.erase(sibling->keys.begin());
+        sibling->values.erase(sibling->values.begin());
+    }
+
+    void mergeChildren(Node* parent, std::size_t index) {
+        Node* left = parent->children[index].get();
+        Node* right = parent->children[index + 1].get();
+
+        // Join both children around their separator when neither can lend.
+        left->keys.push_back(std::move(parent->keys[index]));
+        left->values.push_back(std::move(parent->values[index]));
+        left->keys.insert(left->keys.end(),
+                          std::make_move_iterator(right->keys.begin()),
+                          std::make_move_iterator(right->keys.end()));
+        left->values.insert(left->values.end(),
+                            std::make_move_iterator(right->values.begin()),
+                            std::make_move_iterator(right->values.end()));
+        if (!left->leaf) {
+            left->children.insert(
+                left->children.end(),
+                std::make_move_iterator(right->children.begin()),
+                std::make_move_iterator(right->children.end()));
+        }
+
+        parent->keys.erase(parent->keys.begin() + offset(index));
+        parent->values.erase(parent->values.begin() + offset(index));
+        parent->children.erase(parent->children.begin() + offset(index + 1));
+    }
+
+    std::size_t fillChild(Node* parent, std::size_t index) {
+        // Keep the descent target above minimum occupancy before recursing.
+        if (index > 0 &&
+            parent->children[index - 1]->keys.size() >=
+                static_cast<std::size_t>(t)) {
+            borrowFromPrevious(parent, index);
+        } else if (index < parent->keys.size() &&
+                   parent->children[index + 1]->keys.size() >=
+                       static_cast<std::size_t>(t)) {
+            borrowFromNext(parent, index);
+        } else if (index < parent->keys.size()) {
+            mergeChildren(parent, index);
+        } else {
+            mergeChildren(parent, index - 1);
+            --index;
+        }
+        return index;
+    }
+
+    Node* predecessor(Node* node) const {
+        while (!node->leaf) {
+            node = node->children.back().get();
+        }
+        return node;
+    }
+
+    Node* successor(Node* node) const {
+        while (!node->leaf) {
+            node = node->children.front().get();
+        }
+        return node;
+    }
+
+    bool removeFromInternal(Node* node, std::size_t index) {
+        Node* left = node->children[index].get();
+        Node* right = node->children[index + 1].get();
+
+        // Replace the key with a neighbor if its child can spare one.
+        if (left->keys.size() >= static_cast<std::size_t>(t)) {
+            Node* leaf = predecessor(left);
+            Key replacementKey = leaf->keys.back();
+            node->keys[index] = replacementKey;
+            node->values[index] = std::move(leaf->values.back());
+            return removeFromNode(left, replacementKey);
+        }
+        if (right->keys.size() >= static_cast<std::size_t>(t)) {
+            Node* leaf = successor(right);
+            Key replacementKey = leaf->keys.front();
+            node->keys[index] = replacementKey;
+            node->values[index] = std::move(leaf->values.front());
+            return removeFromNode(right, replacementKey);
+        }
+
+        Key mergedKey = node->keys[index];
+        mergeChildren(node, index);
+        return removeFromNode(left, mergedKey);
+    }
+
+    bool removeFromNode(Node* node, const Key& key) {
+        bool found = false;
+        std::size_t index = locate(*node, key, found);
+
+        if (found) {
+            if (node->leaf) {
+                removeFromLeaf(node, index);
+                return true;
+            }
+            return removeFromInternal(node, index);
+        }
+        if (node->leaf) {
+            return false;
+        }
+
+        if (node->children[index]->keys.size() == minKeys()) {
+            index = fillChild(node, index);
+        }
+        return removeFromNode(node->children[index].get(), key);
+    }
+
     /*
      * Count every key in a subtree.
      * Input:  subtree root (may be null).
@@ -344,10 +492,28 @@ public:
     }
 
     /*
+     * Remove a key and its value.
+     * Input:  key to remove.
+     * Output: true if the key was present, false otherwise.
+     */
+    bool erase(const Key& key) {
+        if (!root || root->keys.empty()) {
+            return false;
+        }
+
+        const bool removed = removeFromNode(root.get(), key);
+        if (root->keys.empty() && !root->leaf) {
+            // An empty internal root is replaced by its only remaining child.
+            root = std::move(root->children.front());
+        }
+        return removed;
+    }
+
+    /*
      * Look up a key (const version: the value cannot be modified).
      * Input:  key to find.
      * Output: pointer to the stored value, or nullptr if the key is absent.
-     *         The pointer is invalidated by the next insert().
+     *         The pointer is invalidated by the next insert() or erase().
      */
     const V* search(const Key& key) const {
         const Node* node = root.get();
@@ -370,7 +536,7 @@ public:
      * Look up a key (non-const version: the value can be modified in place).
      * Input:  key to find.
      * Output: pointer to the stored value, or nullptr if the key is absent.
-     *         The pointer is invalidated by the next insert().
+     *         The pointer is invalidated by the next insert() or erase().
      */
     V* search(const Key& key) {
         // Safe: *this is non-const here, so the value really is modifiable.

@@ -39,12 +39,17 @@ void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
             f[0], std::stoi(f[1]), f[2], std::stoi(f[3]), std::stoi(f[4]), std::stoi(f[5])));
     }
 
-    for (const auto& d : doctorList) doctors.insert(d->getDob(), d); // add to doctors map
+    refreshDoctorIndex();
 }
 
 void Simulation::nextTick() {
     for (const auto& d : doctorList) {
-        if (d->isTreatmentDone(tick)) d->finish()->heal(); // treatment done: patient is healed
+        if (d->isTreatmentDone(tick)) {
+            auto finishedPatient = d->finish();
+            finishedPatient->heal();
+            // Discharged patients should no longer be returned by DOB lookup.
+            patients.erase(finishedPatient->getDob());
+        }
     }
 
     bool changed = false;
@@ -69,6 +74,19 @@ void Simulation::nextTick() {
     }
 
     ++tick;
+    // Keep doctor lookups aligned with the tick shown to the user.
+    refreshDoctorIndex();
+}
+
+void Simulation::refreshDoctorIndex() {
+    for (const auto& d : doctorList) {
+        if (d->isOnShift(tick)) {
+            doctors.insert(d->getDob(), d);
+        } else {
+            // The roster remains intact; only off-shift doctors leave the index.
+            doctors.erase(d->getDob());
+        }
+    }
 }
 
 std::shared_ptr<Patient> Simulation::findPatient(std::string dob) {

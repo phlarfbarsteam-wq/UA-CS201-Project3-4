@@ -4,6 +4,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <optional>
 #include <string>
+#include <stdexcept>
 
 constexpr sf::Color BG_COLOR(25, 28, 36); // Define background color (dark grey)
 constexpr sf::Color BUTTON_COLOR(60, 110, 200); // Define button color (blue)
@@ -54,7 +55,8 @@ constexpr sf::Color conditionColor(int condition) {
 
 App::App() : window(sf::VideoMode({1000, 640}), "Nota Hospital Simulation") {
     window.setFramerateLimit(60);
-    font.openFromFile(DATA_DIR "/assets/JetBrainsMonoNerdFontMono-Regular.ttf");
+    if (!font.openFromFile(DATA_DIR "/assets/JetBrainsMonoNerdFontMono-Regular.ttf"))
+        throw std::runtime_error("Failed to load font in assets/");
     sim.loadData(DATA_DIR "/data/patients.csv", DATA_DIR "/data/doctors.csv");
 }
 

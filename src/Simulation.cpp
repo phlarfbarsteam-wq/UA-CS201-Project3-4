@@ -11,9 +11,7 @@ bool PatientOrder::operator()(const std::shared_ptr<Patient>& a,
     return a->getArrivalTick() > b->getArrivalTick(); // Return later arrival first
 }
 
-Simulation::Simulation() : tick(0), patients(3), doctors(3) {
-    //implementation
-}
+Simulation::Simulation() : tick(0), patients(3), doctors(3) {}
 
 void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
     std::ifstream p_in(patientCsv);

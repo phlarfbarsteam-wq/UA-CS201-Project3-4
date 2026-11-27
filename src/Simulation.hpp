@@ -19,6 +19,9 @@ class Simulation {
     std::vector<std::shared_ptr<Doctor>> doctorList;
     std::vector<std::shared_ptr<Patient>> pending;
     std::vector<std::shared_ptr<Patient>> waiting;
+
+    void refreshDoctorIndex();
+
 public:
     Simulation();
 

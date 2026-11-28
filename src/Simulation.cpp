@@ -136,6 +136,11 @@ std::vector<std::shared_ptr<Doctor>> Simulation::getDoctors() {
     return doctorList;
 }
 
+std::vector<std::vector<std::vector<std::string>>>
+Simulation::getPatientTreeLevels() const {
+    return patients.levelKeys();
+}
+
 int Simulation::getTick() const {
     return tick;
 }

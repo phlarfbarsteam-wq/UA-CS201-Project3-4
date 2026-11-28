@@ -10,6 +10,7 @@ class App {
     sf::RenderWindow window;
     sf::Font font;
     std::string lookupText;
+    // First visible row in the scrollable name-match panel.
     std::size_t nameResultOffset = 0;
 
     void draw();

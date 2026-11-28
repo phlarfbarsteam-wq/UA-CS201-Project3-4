@@ -6,7 +6,7 @@
 #      from the tree. Without deletion, the tree grows forever and lookups return patients
 #      who are no longer there.
 #
-# 2. Name Index ('std::unordered_map') ----- COMPLETE? []
+# 2. Name Index ('std::unordered_map') ----- COMPLETE? [x]
 # Add 'std::unordered_map<std::string, std::vector<Patient*>>' mapping a patients's name to all
 # matching patients. It is updated on every insert and delete, and used by a new name search
 # in the lookup box. 

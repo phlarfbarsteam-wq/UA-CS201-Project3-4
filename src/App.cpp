@@ -2,6 +2,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <stdexcept>
@@ -45,6 +46,11 @@ constexpr sf::Vector2f LOOKUP_POS(LOBBY_BOX.position.x,
 constexpr sf::Vector2f LOOKUP_RESULT_POS(LOOKUP_POS.x, LOOKUP_POS.y + 30.f);
                                          // Lookup result: 30px below the prompt
 
+// Use the center column so name results stay within the window.
+constexpr sf::FloatRect NAME_RESULTS_BOX({300.f, 100.f}, {260.f, 460.f});
+constexpr std::size_t NAME_RESULTS_VISIBLE_COUNT = 17;
+constexpr float NAME_RESULTS_ROW_HEIGHT = 24.f;
+
 constexpr sf::Color LOOKUP_RESULT_COLOR(120, 200, 255); // Define lookup result color (light blue)
 
 constexpr sf::Color conditionColor(int condition) {
@@ -69,11 +75,24 @@ void App::run() {
                 if (m->button == sf::Mouse::Button::Left && NEXT_BUTTON.contains(sf::Vector2f(m->position))) {
                     sim.nextTick();
                 }
+            } else if (const auto* wheel = event->getIf<sf::Event::MouseWheelScrolled>()) {
+                // Scroll the result list only when the pointer is over its panel.
+                if (NAME_RESULTS_BOX.contains(sf::Vector2f(wheel->position))) {
+                    if (wheel->delta < 0.f) {
+                        ++nameResultOffset;
+                    } else if (wheel->delta > 0.f && nameResultOffset > 0) {
+                        --nameResultOffset;
+                    }
+                }
             } else if (const auto* t = event->getIf<sf::Event::TextEntered>()) {
                 if (t->unicode == 8) {
-                    if (!lookupText.empty()) lookupText.pop_back(); // backspace
-                } else if (t->unicode >= 32 && t->unicode < 127 && lookupText.size() < 20) {
-                    lookupText += static_cast<char>(t->unicode); // printable ASCII (max 20 chars)
+                    if (!lookupText.empty()) {
+                        lookupText.pop_back(); // backspace
+                        nameResultOffset = 0;
+                    }
+                } else if (t->unicode >= 32 && t->unicode < 127 && lookupText.size() < 64) {
+                    lookupText += static_cast<char>(t->unicode); // printable ASCII
+                    nameResultOffset = 0;
                 }
             } else if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
                 if (k->code == sf::Keyboard::Key::Right) sim.nextTick(); // Right arrow = Next Tick
@@ -161,11 +180,12 @@ void App::draw() {
         }
     }
 
-    sf::Text lookupPrompt(font, "Lookup DOB (YYYY-MM-DD): " + lookupText + "_", 16); // Prompt with cursor
+    sf::Text lookupPrompt(font, "Lookup DOB or patient name: " + lookupText + "_", 16); // Prompt with cursor
     lookupPrompt.setPosition(LOOKUP_POS); // Set prompt position (below lobby box)
     window.draw(lookupPrompt); // Draw prompt
     if (!lookupText.empty()) {
         std::string result = "No match"; // Default when nothing is found
+        std::vector<Patient*> nameMatches;
         if (auto p = sim.findPatient(lookupText)) // BTree search by DOB
             result = "Patient " + p->getName() + ", age " + std::to_string(p->getAge()) +
                      ", condition " + std::to_string(p->getCondition()) +
@@ -174,10 +194,58 @@ void App::draw() {
             result = "Doctor " + d->getName() + ", age " + std::to_string(d->getAge()) +
                      ", skill " + std::to_string(d->getSkill()) + ", shift " +
                      std::to_string(d->getShiftStart()) + "-" + std::to_string(d->getShiftEnd());
-        sf::Text lookupResult(font, result, 16); // Set result text
-        lookupResult.setFillColor(LOOKUP_RESULT_COLOR); // Set result color (light blue)
-        lookupResult.setPosition(LOOKUP_RESULT_POS); // Place result below prompt
-        window.draw(lookupResult); // Draw result
+        else {
+            // Fall back to patient-name lookup after the DOB indexes miss.
+            nameMatches = sim.findPatientsByName(lookupText);
+            if (!nameMatches.empty()) {
+                result.clear();
+            }
+        }
+
+        if (nameMatches.empty()) {
+            sf::Text lookupResult(font, result, 16); // Set result text
+            lookupResult.setFillColor(LOOKUP_RESULT_COLOR); // Set result color (light blue)
+            lookupResult.setPosition(LOOKUP_RESULT_POS); // Place result below prompt
+            window.draw(lookupResult); // Draw result
+        } else {
+            sf::RectangleShape resultsBox(NAME_RESULTS_BOX.size);
+            resultsBox.setPosition(NAME_RESULTS_BOX.position);
+            resultsBox.setFillColor(sf::Color::Transparent);
+            resultsBox.setOutlineColor(LOBBY_OUTLINE_COLOR);
+            resultsBox.setOutlineThickness(2.f);
+            window.draw(resultsBox);
+
+            sf::Text resultsTitle(
+                font, "Matches (" + std::to_string(nameMatches.size()) +
+                          ") - scroll",
+                14);
+            resultsTitle.setPosition({NAME_RESULTS_BOX.position.x + 10.f,
+                                      NAME_RESULTS_BOX.position.y + 8.f});
+            window.draw(resultsTitle);
+
+            const std::size_t maxOffset =
+                nameMatches.size() > NAME_RESULTS_VISIBLE_COUNT
+                    ? nameMatches.size() - NAME_RESULTS_VISIBLE_COUNT
+                    : 0;
+            nameResultOffset = std::min(nameResultOffset, maxOffset);
+            const std::size_t end =
+                std::min(nameResultOffset + NAME_RESULTS_VISIBLE_COUNT,
+                         nameMatches.size());
+            for (std::size_t i = nameResultOffset; i < end; ++i) {
+                const Patient* patient = nameMatches[i];
+                const float y = NAME_RESULTS_BOX.position.y + 32.f +
+                                NAME_RESULTS_ROW_HEIGHT *
+                                    static_cast<float>(i - nameResultOffset);
+                sf::Text row(
+                    font,
+                    patient->getDob() + " age " +
+                        std::to_string(patient->getAge()) + " cond " +
+                        std::to_string(patient->getCondition()),
+                    11);
+                row.setPosition({NAME_RESULTS_BOX.position.x + 10.f, y});
+                window.draw(row);
+            }
+        }
     }
 
     window.display(); // Display window

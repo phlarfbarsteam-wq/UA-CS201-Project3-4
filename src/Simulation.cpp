@@ -22,12 +22,14 @@ void Simulation::loadData(std::string patientCsv, std::string doctorCsv) {
         std::vector<std::string> f;
         std::string field;
         while (std::getline(ss, field, ',')) f.push_back(field);
-        pending.push_back(std::make_shared<Patient>(
-            f[0], std::stoi(f[1]), f[2], std::stoi(f[3]), std::stoi(f[4]), std::stoi(f[5])));
+        auto patient = std::make_shared<Patient>(
+            f[0], std::stoi(f[1]), f[2], std::stoi(f[3]), std::stoi(f[4]), std::stoi(f[5]));
+        pending.push_back(patient);
+        patients.insert(patient->getDob(), patient);
+        // pending owns the patient; the name index stores a non-owning pointer.
+        patientsByName[patient->getName()].push_back(patient.get());
     }
 
-    for (const auto& p : pending) patients.insert(p->getDob(), p); // add to patients map
-    
     std::ifstream d_in(doctorCsv);
     std::getline(d_in, line); // skip header
     while (std::getline(d_in, line)) {
@@ -49,6 +51,7 @@ void Simulation::nextTick() {
             finishedPatient->heal();
             // Discharged patients should no longer be returned by DOB lookup.
             patients.erase(finishedPatient->getDob());
+            removePatientFromNameIndex(finishedPatient.get());
         }
     }
 
@@ -89,9 +92,32 @@ void Simulation::refreshDoctorIndex() {
     }
 }
 
+void Simulation::removePatientFromNameIndex(const Patient* patient) {
+    // Drop the entry when its last same-name patient is discharged.
+    auto entry = patientsByName.find(patient->getName());
+    if (entry == patientsByName.end()) {
+        return;
+    }
+
+    auto& matches = entry->second;
+    matches.erase(std::remove(matches.begin(), matches.end(), patient),
+                  matches.end());
+    if (matches.empty()) {
+        patientsByName.erase(entry);
+    }
+}
+
 std::shared_ptr<Patient> Simulation::findPatient(std::string dob) {
     auto* p = patients.search(dob); // pointer to stored shared_ptr (of patient)
     return p ? *p : nullptr; // return shared_ptr if found, else nullptr
+}
+
+std::vector<Patient*> Simulation::findPatientsByName(
+    const std::string& name) const {
+    // Return every active exact-name match in one hash lookup.
+    const auto entry = patientsByName.find(name);
+    return entry == patientsByName.end() ? std::vector<Patient*>{}
+                                         : entry->second;
 }
 
 std::shared_ptr<Doctor> Simulation::findDoctor(std::string dob) {

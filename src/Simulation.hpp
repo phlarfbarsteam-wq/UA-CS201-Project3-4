@@ -38,5 +38,7 @@ public:
 
     std::vector<std::shared_ptr<Patient>> getWaiting();
     std::vector<std::shared_ptr<Doctor>> getDoctors();
+    // Snapshot the DOB tree as levels containing nodes containing their keys.
+    std::vector<std::vector<std::vector<std::string>>> getPatientTreeLevels() const;
     int getTick() const;
 };

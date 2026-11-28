@@ -601,6 +601,35 @@ public:
     }
 
     /*
+     * Snapshot keys grouped by level and node, in left-to-right order.
+     * Output: one vector per level, containing each node's sorted keys.
+     */
+    std::vector<std::vector<std::vector<Key>>> levelKeys() const {
+        std::vector<std::vector<std::vector<Key>>> levels;
+        if (empty()) {
+            return levels;
+        }
+
+        std::vector<const Node*> current{root.get()};
+        while (!current.empty()) {
+            std::vector<std::vector<Key>> level;
+            std::vector<const Node*> next;
+            level.reserve(current.size());
+            for (const Node* node : current) {
+                level.push_back(node->keys);
+                if (!node->leaf) {
+                    for (const auto& child : node->children) {
+                        next.push_back(child.get());
+                    }
+                }
+            }
+            levels.push_back(std::move(level));
+            current = std::move(next);
+        }
+        return levels;
+    }
+
+    /*
      * Self-check used by the tests: verify all B-Tree rules listed at the top
      * of this file.
      * Output: true if the tree is a valid B-Tree. Intended for debugging.

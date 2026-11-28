@@ -20,8 +20,8 @@ Requires CMake 3.16+ and SFML 3.
 
 ## To-Do
 
-- [ ] Implement `BTree.hpp` (`splitChild`, `insertNonFull`, `insert`, `search`)
-- [ ] Implement `Patient` and `Doctor`
-- [ ] Implement `Simulation` (CSV loading, `nextTick`, priority queue, lookups)
-- [ ] Implement `App` (SFML window, Next Tick button, DOB lookup) and `main`
-- [ ] Tag the final commit `SUBMISSION-PROJECT-3`, `PROJECT-3`, or some derivative
+- [x] Implement `BTree.hpp` (`splitChild`, `insertNonFull`, `insert`, `search`)
+- [x] Implement `Patient` and `Doctor`
+- [x] Implement `Simulation` (CSV loading, `nextTick`, priority queue, lookups)
+- [x] Implement `App` (SFML window, Next Tick button, DOB lookup) and `main`
+- [] Tag the final commit `SUBMISSION-PROJECT-3`, `PROJECT-3`, or some derivative

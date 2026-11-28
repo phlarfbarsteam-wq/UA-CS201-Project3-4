@@ -13,7 +13,7 @@
 # Why: The B-Tree is keyed by DOB, so finding a patient by name would mean scanning every record.
 #      The hash map gives average O(1) lookup and returns every patient who shares a name. 
 #
-# 3. B-Tree Viewer ----- COMPLETE? []
+# 3. B-Tree Viewer ----- COMPLETE? [x]
 # Add an SFML view that draws the B-Tree: one row per level, one box per node showing its keys,
 # with lines to child nodes. It redraws after every insert and delete. 
 # Why: It shows how the tree changes as patients arrive and leave, including node splits and merges.

@@ -19,9 +19,15 @@ constexpr sf::Vector2f TICK_TEXT_POS(NEXT_BUTTON.position.x + NEXT_BUTTON.size.x
                                      // Tick text: 20px right of button, 10px below its top
 
 constexpr sf::Color LOBBY_OUTLINE_COLOR(120, 125, 140); // Define lobby box outline color (light grey)
-constexpr sf::FloatRect LOBBY_BOX({20.f, 100.f}, {260.f, 460.f}); // Define lobby box position/size
+// Move the existing panels down to make room for the tree viewer.
+constexpr sf::FloatRect LOBBY_BOX({20.f, 280.f}, {260.f, 460.f}); // Define lobby box position/size
 constexpr sf::Vector2f LOBBY_LABEL_POS(LOBBY_BOX.position.x, LOBBY_BOX.position.y - 30.f);
                                        // Lobby label: 30px above the box
+
+// Reserve a full-width strip for the patient-tree visualization.
+constexpr sf::FloatRect TREE_PANEL({20.f, 100.f}, {960.f, 150.f});
+constexpr sf::Vector2f TREE_LABEL_POS(TREE_PANEL.position.x,
+                                      TREE_PANEL.position.y - 30.f);
 
 constexpr float ROW_HEIGHT = 22.f; // Define vertical spacing between patient rows
 constexpr sf::Color TEXT_COLOR(230, 230, 230); // Define main text color (white)
@@ -32,7 +38,7 @@ constexpr sf::Color CONDITION_CRITICAL(230, 60, 60); // Define critical conditio
 constexpr sf::Vector2f ROW_ORIGIN(LOBBY_BOX.position.x + 10.f, LOBBY_BOX.position.y + 10.f);
                                   // First patient row: 10px inside the lobby box
 
-constexpr sf::FloatRect DOCTOR_BOX({580.f, 100.f}, {400.f, 460.f}); // Define doctor box position/size
+constexpr sf::FloatRect DOCTOR_BOX({580.f, 280.f}, {400.f, 460.f}); // Define doctor box position/size
 constexpr sf::Vector2f DOCTOR_LABEL_POS(DOCTOR_BOX.position.x, DOCTOR_BOX.position.y - 30.f);
                                         // Doctor label: 30px above the box
 
@@ -47,7 +53,7 @@ constexpr sf::Vector2f LOOKUP_RESULT_POS(LOOKUP_POS.x, LOOKUP_POS.y + 30.f);
                                          // Lookup result: 30px below the prompt
 
 // Use the center column so name results stay within the window.
-constexpr sf::FloatRect NAME_RESULTS_BOX({300.f, 100.f}, {260.f, 460.f});
+constexpr sf::FloatRect NAME_RESULTS_BOX({300.f, 280.f}, {260.f, 460.f});
 constexpr std::size_t NAME_RESULTS_VISIBLE_COUNT = 17;
 constexpr float NAME_RESULTS_ROW_HEIGHT = 24.f;
 
@@ -59,7 +65,8 @@ constexpr sf::Color conditionColor(int condition) {
     return CONDITION_LOW;
 }
 
-App::App() : window(sf::VideoMode({1000, 640}), "Nota Hospital Simulation") {
+// Extra height accommodates the tree viewer above the existing panels.
+App::App() : window(sf::VideoMode({1000, 820}), "Nota Hospital Simulation") {
     window.setFramerateLimit(60);
     if (!font.openFromFile(DATA_DIR "/assets/JetBrainsMonoNerdFontMono-Regular.ttf"))
         throw std::runtime_error("Failed to load font in assets/");
@@ -119,6 +126,101 @@ void App::draw() {
     sf::Text tickText(font, "Tick " + std::to_string(sim.getTick()) + "  (hour " + std::to_string(sim.getTick() % 24) + ")   [Right arrow = next]", 16); // Fetch current tick and hour
     tickText.setPosition(TICK_TEXT_POS); // Place text next to the button
     window.draw(tickText); // Draw text
+
+    sf::RectangleShape treePanel(TREE_PANEL.size);
+    treePanel.setPosition(TREE_PANEL.position);
+    treePanel.setFillColor(sf::Color::Transparent);
+    treePanel.setOutlineColor(LOBBY_OUTLINE_COLOR);
+    treePanel.setOutlineThickness(2.f);
+    window.draw(treePanel);
+
+    sf::Text treeLabel(font, "Patient DOB B-Tree:", 18);
+    treeLabel.setPosition(TREE_LABEL_POS);
+    window.draw(treeLabel);
+
+    // Refresh the layout snapshot each frame so tree changes appear immediately.
+    const auto treeLevels = sim.getPatientTreeLevels();
+    if (treeLevels.empty()) {
+        sf::Text emptyTree(font, "No patient keys", 14);
+        emptyTree.setPosition({TREE_PANEL.position.x + 10.f,
+                               TREE_PANEL.position.y + 12.f});
+        window.draw(emptyTree);
+    } else {
+        const float contentLeft = TREE_PANEL.position.x + 10.f;
+        const float contentWidth = TREE_PANEL.size.x - 20.f;
+        const float contentTop = TREE_PANEL.position.y + 10.f;
+        const float contentHeight = TREE_PANEL.size.y - 20.f;
+        const float rowStep =
+            contentHeight / static_cast<float>(treeLevels.size());
+        const float nodeHeight = std::min(22.f, rowStep - 4.f);
+        std::vector<std::vector<float>> nodeCenters(treeLevels.size());
+
+        for (std::size_t level = 0; level < treeLevels.size(); ++level) {
+            const auto nodeCount = treeLevels[level].size();
+            const float slotWidth = contentWidth / static_cast<float>(nodeCount);
+            nodeCenters[level].reserve(nodeCount);
+            for (std::size_t node = 0; node < nodeCount; ++node) {
+                nodeCenters[level].push_back(
+                    contentLeft + slotWidth * (static_cast<float>(node) + 0.5f));
+            }
+        }
+
+        // Children of each parent are consecutive in the next level snapshot.
+        for (std::size_t level = 0; level + 1 < treeLevels.size(); ++level) {
+            const float parentY = contentTop + rowStep * static_cast<float>(level) +
+                                  (rowStep - nodeHeight) / 2.f + nodeHeight;
+            const float childY = contentTop + rowStep * static_cast<float>(level + 1) +
+                                 (rowStep - nodeHeight) / 2.f;
+            std::size_t childIndex = 0;
+            for (std::size_t node = 0; node < treeLevels[level].size(); ++node) {
+                const std::size_t childCount = treeLevels[level][node].size() + 1;
+                for (std::size_t child = 0; child < childCount; ++child) {
+                    sf::Vertex edge[2];
+                    edge[0].position = {nodeCenters[level][node], parentY};
+                    edge[0].color = LOBBY_OUTLINE_COLOR;
+                    edge[1].position = {
+                        nodeCenters[level + 1][childIndex + child], childY};
+                    edge[1].color = LOBBY_OUTLINE_COLOR;
+                    window.draw(edge, 2, sf::PrimitiveType::Lines);
+                }
+                childIndex += childCount;
+            }
+        }
+
+        for (std::size_t level = 0; level < treeLevels.size(); ++level) {
+            const auto nodeCount = treeLevels[level].size();
+            const float slotWidth = contentWidth / static_cast<float>(nodeCount);
+            const float rowY = contentTop + rowStep * static_cast<float>(level) +
+                               (rowStep - nodeHeight) / 2.f;
+            for (std::size_t node = 0; node < nodeCount; ++node) {
+                std::string keys;
+                for (const auto& key : treeLevels[level][node]) {
+                    if (!keys.empty()) keys += " | ";
+                    keys += key;
+                }
+
+                unsigned int characterSize = 9;
+                sf::Text keyText(font, keys, characterSize);
+                while (characterSize > 4 &&
+                       keyText.getLocalBounds().size.x > slotWidth - 10.f) {
+                    keyText.setCharacterSize(--characterSize);
+                }
+                const float boxWidth =
+                    std::min(slotWidth - 4.f,
+                             keyText.getLocalBounds().size.x + 8.f);
+                const float boxX = nodeCenters[level][node] - boxWidth / 2.f;
+                sf::RectangleShape keyBox({boxWidth, nodeHeight});
+                keyBox.setPosition({boxX, rowY});
+                keyBox.setFillColor(BG_COLOR);
+                keyBox.setOutlineColor(TEXT_COLOR);
+                keyBox.setOutlineThickness(1.f);
+                window.draw(keyBox);
+
+                keyText.setPosition({boxX + 4.f, rowY + 2.f});
+                window.draw(keyText);
+            }
+        }
+    }
 
     sf::RectangleShape lobby(LOBBY_BOX.size); // Set lobby box shape
     lobby.setPosition(LOBBY_BOX.position); // Set lobby box position
